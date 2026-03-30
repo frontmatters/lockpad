@@ -9,6 +9,7 @@
     "dev": "concurrently -k \"npm run watch\" \"npm run serve\"",
     "watch": "tsc -w",
     "serve": "nodemon -e js,html,css dist/index.js",
+    "start": "node dist/index.js",
     "forever-start": "forever start --append dist/index.js",
     "forever-stop": "forever stopall",
     "forever-restart": "forever restartall"

@@ -32,4 +32,4 @@ RUN cd backend && npm run build
 EXPOSE 3000
 
 #CMD ["sleep", "1d"]
-CMD /bin/sh -c "cd frontend && npm run copy:backend && cd ../backend && npm run serve"
+CMD /bin/sh -c "cd frontend && npm run copy:backend && cd ../backend && npm run start"
