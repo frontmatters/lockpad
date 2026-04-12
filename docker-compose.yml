@@ -1,5 +1,6 @@
 services:
-  backend:
+  notepad:
+    container_name: notepad
     image: athlon1600/notepad:latest
     environment:
       NODE_ENV: production
