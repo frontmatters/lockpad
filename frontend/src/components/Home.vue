@@ -77,7 +77,7 @@
 
                 To prove how safe they are, you can actually download all the notes stored on this server from here:
                 <br>
-                <a href="https://notepad.mx/archive.tar.gz" target="_blank">https://notepad.mx/archive.tar.gz</a>
+                <a href="https://notepad.mx/backups/" target="_blank">https://notepad.mx/backups/</a>
             </p>
 
             <p>

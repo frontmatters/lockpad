@@ -1,9 +1,11 @@
 #!/bin/bash
 
+set -eu
+
 ### Download all notes from notepad.mx to our own local storage folder
 
-# URL of the .tar.gz archive
-ARCHIVE_URL="https://notepad.mx/archive.tar.gz"
+# Permanent URL to the latest backup
+ARCHIVE_URL="https://notepad.mx/backups/archive.tar.gz"
 
 # Define directories
 BIN_DIR="$(dirname "$(readlink -f "$0")")"

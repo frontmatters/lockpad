@@ -17,7 +17,6 @@ Exact version of this application:
 
 - https://notepad.mx
 
-
 ## :whale2: Deploy using Docker
 
 Rent a server for free at [linode.com](https://www.linode.com/lp/refer/?r=cee8aa429cd4cbb5a6e6d1ebfd8986f661d8ef4e)
@@ -37,15 +36,6 @@ docker compose up -d
 ```
 
 :heavy_check_mark: Application will be running on port 3000
-
-Alternatively, you may run:
-
-```shell
-docker run -d -p 3000:3000 athlon1600/notepad
-```
-
-See our Docker Hub page here:  
-https://hub.docker.com/r/athlon1600/notepad
 
 ## :hammer: Deployment to Production (manual)
 
@@ -72,11 +62,11 @@ If you want HTTPS support out of the box, you should install Caddy:
 wget -qO- https://raw.githubusercontent.com/Athlon1600/useful/master/caddy/caddy_linux_amd64.sh | bash
 ```
 
-Be sure to modify `backend/etc/Caddyfile` replacing `notepad.mx` with your own domain,
+Be sure to modify `etc/Caddyfile` replacing `notepad.mx` with your own domain,
 and then run:
 
 ```shell
-caddy start --config ./backend/etc/Caddyfile 
+caddy start --config ./etc/Caddyfile 
 ```
 
 ## :closed_lock_with_key: How it works
@@ -106,14 +96,20 @@ instance gets shut down.
 
 You can download all the notes created on the main **notepad.mx** instance here:
 
-- https://notepad.mx/archive.tar.gz
+- https://notepad.mx/backups/archive.tar.gz
 
 extract everything to `backend/storage`, and now everyone using your application has access to those notes too.
 
 There is also a command that does all that for you automatically:
 
 ```shell
-docker compose exec -it backend sh -c "sh backend/bin/sync.sh"
+docker exec -it notepad sh -c "sh backend/bin/sync.sh"
+```
+
+You may also do your own backups periodically by running this command (typically via cron):
+
+```shell
+docker exec -it notepad sh -c "sh backend/bin/archive.sh"
 ```
 
 ## Troubleshooting
@@ -122,7 +118,8 @@ docker compose exec -it backend sh -c "sh backend/bin/sync.sh"
 > ERROR in Failed to launch chrome!  
 > error while loading shared libraries: libX11-xcb.so.1: cannot open shared object file: No such file or directory
 
-Make sure your system has all the necessary dependencies installed. See this link - https://github.com/puppeteer/puppeteer/blob/main/docs/troubleshooting.md#chrome-doesnt-launch-on-linux
+Make sure your system has all the necessary dependencies installed. See this link:
+- https://github.com/puppeteer/puppeteer/blob/main/docs/troubleshooting.md#chrome-doesnt-launch-on-linux
 
 ## To-do list
 
@@ -141,5 +138,4 @@ https://github.com/Athlon1600/notepad/tree/v1.0.0-rc.1
 
 - https://hub.docker.com/r/athlon1600/notepad
 - https://ricmoo.github.io/scrypt-js/
-- http://aes.online-domain-tools.com/
 - https://www.proxynova.com/tools/brute-force-calculator
