@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eux
+
 # Define directories
 BIN_DIR="$(dirname "$(readlink -f "$0")")"
 BACKEND_DIR="$(dirname "$BIN_DIR")"
@@ -19,4 +21,4 @@ fi
 # change to storage directory just in case
 tar -czf archive.tar.gz -C "$BACKEND_DIR" storage && mv archive.tar.gz "$ARCHIVE_DIR"
 
-echo "Archive created in $ARCHIVE_DIR"
+echo -e "\e[32m\u2705 Archive created in $ARCHIVE_DIR \e[0m"
