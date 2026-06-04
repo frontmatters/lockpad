@@ -1,170 +1,163 @@
 <template>
-  <div class="w-full max-w-screen-lg mx-auto flex flex-col flex-grow mt-5 px-1 lg:px-0">
+  <section class="editor-shell">
+    <div class="editor-frame" :style="{ borderTopColor: noteHue }">
+      <textarea
+        ref="areaRef"
+        v-model="text"
+        class="editor-area"
+        placeholder="start typing — saved automatically"
+        :style="{ caretColor: noteHue }"
+        @keydown="onKeydown"
+      ></textarea>
 
-    <div class="toolbar">
-      <p>🔒 All text is automatically encrypted and saved as you type.</p>
-    </div>
-
-    <div id="plain_text_not_ace" class="flex flex-col flex-grow">
-
-      <textarea @keyup="textKeyUp" @keydown="textKeyDown" @select="textSelect" @mouseup="textSelect" v-model="text"
-                placeholder="Nothing written here yet! Write something!" style="resize: none"
-                class="flex-grow"></textarea>
-
-      <div class="flex justify-between mt-2 mb-5">
-
-        <div class="status-bar">
-          Words: {{ wordCount }},
-          Characters: <span v-if="selectedCharCount">{{ selectedCharCount }}/</span>{{ charCount }},
-          Lines: {{ lineCount }}
+      <div class="editor-statusbar">
+        <div class="editor-stats">
+          <span><strong>{{ wordCount }}</strong>words</span>
+          <span><strong>{{ charCount }}</strong>chars</span>
+          <span><strong>{{ lineCount }}</strong>lines</span>
         </div>
 
-        <div>
-          <a href="" @click.prevent="deleteForever" class="font-bold text-red-500">Delete Forever</a>
-        </div>
+        <div class="editor-actions">
+          <span class="save-state" :data-state="saveState">
+            <span class="save-state-dot"></span>
+            <span class="save-state-text">{{ saveStateText }}</span>
+          </span>
 
+          <button
+            class="btn btn-danger-ghost btn-sm"
+            type="button"
+            :data-confirm="confirmingDelete ? 'true' : ''"
+            @click="onDeleteClick"
+            @blur="resetConfirm"
+          >
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 6h18"/>
+              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6"/>
+              <path d="M14 11v6"/>
+            </svg>
+            <span>{{ confirmingDelete ? 'click again to confirm' : 'delete forever' }}</span>
+          </button>
+        </div>
       </div>
-
     </div>
-
-  </div>
+  </section>
 </template>
 
 <script>
-import {watch} from "vue";
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import debounce from 'debounce';
+import store from '../store';
+import { SecureStorage } from '../classes/SecureStorage';
 
-import {TextUtil} from "../classes/TextUtil";
-import debounce from "debounce";
-import store from "../store";
-import {SecureStorage} from "../classes/SecureStorage";
-
-// https://github.com/reddit-archive/reddit/blob/753b17407e9a9dca09558526805922de24133d53/r2/r2/models/link.py#L149
-const TEXT_MAX_LEN = 40000;
+const SAVE_DEBOUNCE_MS  = 800;
+const CONFIRM_TIMEOUT_MS = 3000;
 
 export default {
-  data() {
-    return {
-      isBusy: true,
-      text: '',
-      // stats
-      charCount: 0,
-      selectedCharCount: 0,
-      wordCount: 0,
-      lineCount: 0
-    }
+  name: 'Editor',
+  props: {
+    noteHue: { type: String, default: '#4a8f2c' },
   },
-  watch: {
-    // nothing
-  },
-  methods: {
-    writeNow: async function () {
+  setup() {
+    const text = ref('');
+    const areaRef = ref(null);
+    // 'saved' | 'saving' | 'error'
+    const saveState = ref('saved');
+    const saveStateText = ref('encrypted · ready');
+    const confirmingDelete = ref(false);
+    let confirmTimer = null;
 
+    const charCount = computed(() => text.value.length);
+    const wordCount = computed(() => {
+      const t = text.value.trim();
+      return t ? t.split(/\s+/).length : 0;
+    });
+    const lineCount = computed(() => text.value ? text.value.split('\n').length : 0);
+
+    async function loadNote() {
+      const authKey = store.getters.getAuthKey();
+      const encKey  = store.getters.getEncKey();
+      if (!authKey || !encKey) return;
       try {
-
-        const text = this.text;
-        const authKey = store.state.authKey;
-        const password = store.state.encryptionKey;
-
-        await SecureStorage.write(authKey, text, password);
-
-      } catch (ex) {
-        const errorString = ex?.message || ex;
-        alert('Something went wrong during saving: ' + errorString);
+        const decrypted = await SecureStorage.read(authKey, encKey);
+        text.value = decrypted || '';
+        saveState.value = 'saved';
+        saveStateText.value = decrypted ? 'encrypted · loaded' : 'encrypted · empty';
+      } catch (err) {
+        saveState.value = 'error';
+        saveStateText.value = 'could not decrypt';
+        console.error('load failed:', err && err.message ? err.message : err);
       }
-
-    },
-    writeLater: debounce(async function () {
-      await this.writeNow();
-    }, 800),
-    textKeyDown(event) {
-
-      if (event.ctrlKey || event.metaKey) {
-        switch (String.fromCharCode(event.which).toLowerCase()) {
-          case 's':
-            event.preventDefault();
-            break;
-        }
-      }
-    },
-    async textKeyUp() {
-      this.writeLater();
-    },
-    textSelect(event) {
-
-      const target = event.target;
-
-      let val = target.value;
-      let start = target.selectionStart;
-      let end = target.selectionEnd;
-
-      if (start === end) {
-        this.selectedCharCount = 0;
-      } else {
-
-        let selected = val.substring(start, end);
-        this.selectedCharCount = selected.length;
-      }
-
-    },
-    deleteForever() {
-
-      if (confirm('Are you sure?? This action cannot be undone')) {
-
-            const key = store.state.authKey;
-
-            SecureStorage.remove(key).then(() => {
-                store.actions.reset();
-            }).catch(() => {
-                alert('Failed to delete');
-            });
-      }
-
     }
-  },
-  mounted() {
 
-    // Logged in as new user!
-    watch(() => store.state.authKey, async (newValue, oldValue) => {
-
-      this.isBusy = true;
-
-      if (newValue) {
-          const password = store.state.encryptionKey;
-          const text = await SecureStorage.read(newValue, password);
-
-          this.text = text;
-
-      } else {
-        this.text = '';
+    async function writeNow() {
+      const authKey = store.getters.getAuthKey();
+      const encKey  = store.getters.getEncKey();
+      if (!authKey || !encKey) return;
+      if (!text.value) return;
+      saveState.value = 'saving';
+      saveStateText.value = 'encrypting · saving';
+      try {
+        await SecureStorage.write(authKey, encKey, text.value);
+        saveState.value = 'saved';
+        saveStateText.value = 'encrypted · saved just now';
+      } catch (err) {
+        saveState.value = 'error';
+        saveStateText.value = 'save failed';
+        console.error('save failed:', err && err.message ? err.message : err);
       }
+    }
+    const writeLater = debounce(writeNow, SAVE_DEBOUNCE_MS);
 
-      this.isBusy = false;
+    function onKeydown(event) {
+      // Defang Ctrl/Cmd+S — saving is automatic.
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        writeNow();
+        return;
+      }
+      writeLater();
+    }
 
-    }, {
-      immediate: true
+    function resetConfirm() {
+      if (confirmTimer) { clearTimeout(confirmTimer); confirmTimer = null; }
+      confirmingDelete.value = false;
+    }
+
+    async function onDeleteClick() {
+      if (confirmingDelete.value) {
+        // Second click — actually delete.
+        resetConfirm();
+        const authKey = store.getters.getAuthKey();
+        if (!authKey) return;
+        try {
+          await SecureStorage.remove(authKey);
+        } catch (err) {
+          console.error('delete failed:', err && err.message ? err.message : err);
+        }
+        store.actions.reset();
+        return;
+      }
+      // First click — arm.
+      confirmingDelete.value = true;
+      confirmTimer = setTimeout(resetConfirm, CONFIRM_TIMEOUT_MS);
+    }
+
+    onMounted(loadNote);
+    onBeforeUnmount(() => {
+      resetConfirm();
+      writeLater.clear && writeLater.clear();
     });
 
-    const updateTextStats = debounce(() => {
-
-      let str = this.text;
-
-      if (str) {
-        this.wordCount = TextUtil.wordCount(str);
-        this.charCount = str.length;
-        this.lineCount = TextUtil.lineCount(str);
-      }
-
-    }, 100)
-
-    watch(() => this.text, function () {
-      updateTextStats();
-    }, {
-      immediate: true
-    });
-
+    return {
+      text, areaRef,
+      saveState, saveStateText,
+      confirmingDelete,
+      charCount, wordCount, lineCount,
+      onKeydown, onDeleteClick, resetConfirm,
+    };
   },
-  async beforeUnmount() {
-    //await store.actions.saveContents(this.text);
-  }
-}
+};
 </script>
