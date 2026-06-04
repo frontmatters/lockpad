@@ -49,7 +49,11 @@ export class Server {
             contentSecurityPolicy: {
                 directives: {
                     defaultSrc: ["'self'"],
-                    scriptSrc: ["'self'"],
+                    // 'wasm-unsafe-eval' is a CSP3 directive scoped exclusively
+                    // to WebAssembly compile/instantiate. It does NOT enable
+                    // dynamic JS code execution paths.
+                    // Required by hash-wasm for the Argon2id KDF computation.
+                    scriptSrc: ["'self'", "'wasm-unsafe-eval'"],
                     styleSrc: ["'self'", "'unsafe-inline'"],
                     imgSrc: ["'self'", "data:"],
                     connectSrc: ["'self'"],
