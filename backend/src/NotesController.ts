@@ -1,63 +1,41 @@
-import {Request, Response} from "express";
-import {Database} from "./Database";
-import {isHexString} from "./Util";
+import { Request, Response } from "express";
+import { Database } from "./Database";
 
-const validateKey = (key: string) => {
-    return isHexString(key) && key.length === 32;
-}
+// All three endpoints rely on the requireAuthKey middleware (see Auth.ts) to
+// populate req.authKey before reaching here. The authKey is the 32-hex output
+// of the client's HKDF-Expand("notepad-secure/auth/v2") on their Argon2id
+// master. The server treats it as an opaque identifier and never inspects the
+// blob it indexes.
+//
+// Response shape is identical for "no note exists" and "note exists but is empty":
+//   GET  → 200 text/plain with the stored ciphertext-JSON, or 200 with "" body
+//   POST → 204 no content
+//   DEL  → 204 no content (even if there was nothing to delete)
+//
+// Mitigates the existence-oracle from the audit: status codes no longer
+// distinguish hit/miss, and Content-Length is still observable but rate-limiting
+// (Phase 2.4) caps how fast it can be enumerated.
 
 export class NotesController {
-    
-    static index(req: Request, res: Response): void {
-
-        res.json({
-            message: 'Send POST/DELETE to /notes/:key to manage notes'
-        });
-    }
 
     static read(req: Request, res: Response): void {
-
-        const {id} = req.params;
-
-        const contents = Database.get(id);
-
-        res.setHeader('content-type', 'text/plain').send(contents || "");
+        const contents = Database.get(req.authKey!) || "";
+        res.setHeader('content-type', 'text/plain').status(200).send(contents);
     }
 
     static write(req: Request, res: Response): void {
 
-        const {id} = req.params;
-
-        if (!validateKey(id)) {
-            res.status(400).send({
-                error: 'Invalid key. Must be a lowercase hex string exactly 32 characters in length'
-            });
-
+        if (typeof req.body !== 'string' || req.body.length === 0) {
+            res.status(400).json({ error: 'invalid payload' });
             return;
         }
 
-        if (typeof req.body === 'string') {
-            Database.save(id, req.body.toString());
-
-            res.status(200).json({
-                status: 'OK'
-            });
-
-        } else {
-            res.status(400).json({
-                error: 'Invalid data. Expecting type: text/plain'
-            });
-        }
+        Database.save(req.authKey!, req.body);
+        res.status(204).end();
     }
 
     static delete(req: Request, res: Response): void {
-
-        const {id} = req.params;
-
-        if (id) {
-            Database.remove(id);
-        }
-
-        res.status(200).send("");
+        Database.remove(req.authKey!);
+        res.status(204).end();
     }
 }
