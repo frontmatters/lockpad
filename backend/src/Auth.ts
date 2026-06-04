@@ -19,13 +19,14 @@ const BEARER_RE = /^Bearer\s+([0-9a-f]{32})$/;
 //     note. The Authorization header is not logged by sane defaults.
 //
 // On failure: 401 + uniform JSON body (no hint about what was wrong).
-export function requireAuthKey(req: Request, res: Response, next: NextFunction) {
+export function requireAuthKey(req: Request, res: Response, next: NextFunction): void {
 
     const header = req.headers.authorization || '';
     const m = header.match(BEARER_RE);
 
     if (!m) {
-        return res.status(401).json({ error: 'unauthorized' });
+        res.status(401).json({ error: 'unauthorized' });
+        return;
     }
 
     req.authKey = m[1];
