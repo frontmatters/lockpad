@@ -1,17 +1,16 @@
-const {VueLoaderPlugin} = require("vue-loader");
+const { VueLoaderPlugin } = require("vue-loader");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const PrerenderSPAPlugin = require('prerender-spa-plugin-next')
-
 const path = require("path");
 
 const isProd = (process.env.NODE_ENV === 'production');
 
-const webpackConfig = {
+module.exports = {
     mode: isProd ? 'production' : 'development',
     entry: './src/main.js',
     output: {
         path: path.resolve(__dirname, 'dist'),
-        filename: 'bundle.js'
+        filename: 'bundle.[contenthash].js',
+        clean: true,
     },
     module: {
         rules: [
@@ -20,68 +19,33 @@ const webpackConfig = {
                 exclude: /node_modules/,
                 use: {
                     loader: "babel-loader",
-                    options: {
-                        presets: [
-                            ['@babel/preset-env', {targets: "ie 11"}]
-                        ]
-                    }
+                    // 'defaults' targets browsers that match the >0.5%, not dead,
+                    // not op_mini all browserslist preset — well above what
+                    // window.crypto.subtle + Argon2 WASM need. IE 11 target removed.
+                    options: { presets: [['@babel/preset-env', { targets: 'defaults' }]] },
                 },
             },
-            {
-                test: /\.vue$/,
-                loader: "vue-loader",
-            },
-            {
-                test: /\.css$/,
-                use: [
-                    'style-loader',
-                    'css-loader'
-                ]
-            },
-            {
-                test: /\.scss$/,
-                use: [
-                    'style-loader',
-                    'css-loader',
-                    'postcss-loader',
-                    'sass-loader'
-                ]
-            }
+            { test: /\.vue$/, loader: "vue-loader" },
+            { test: /\.css$/, use: ['style-loader', 'css-loader'] },
         ],
     },
     plugins: [
         new VueLoaderPlugin(),
         new HtmlWebpackPlugin({
-            title: "Notepad.mx",
             template: "public/index.html",
             inject: true,
-            minify: false,
-            hash: true
-        })
+            minify: isProd,
+            hash: true,
+        }),
     ],
     devServer: {
+        // Local dev: backend runs on :3000 directly; webpack-dev-server proxies
+        // /api/* through so the SPA can call its own origin in development too.
         proxy: [
-            {
-                context: ['/api', '/notes'],
-                target: 'http://localhost:3000',
-                changeOrigin: true
-            }
-        ]
+            { context: ['/api'], target: 'http://localhost:3000', changeOrigin: true },
+        ],
     },
     resolve: {
         extensions: [".js", ".vue"],
     },
 };
-
-if (isProd) {
-
-    const prerender = new PrerenderSPAPlugin({
-        routes: ['/']
-    });
-
-    // requires extra dependencies
-    // error while loading shared libraries: libX11-xcb.so.1: cannot open shared object file: No such file or directory
-    webpackConfig.plugins.push(prerender);
-}
-
-module.exports = webpackConfig;
