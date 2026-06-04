@@ -1,14 +1,69 @@
+# notepad-secure — production-oriented compose file.
+#
+# Required env (see .env.example):
+#   SERVER_SECRET   32+ char random string. Hard-fails if missing.
+#   DOMAIN          (optional) for Caddy reverse proxy; defaults to notepad.local
+#
+# Bring up:
+#   cp .env.example .env  &&  edit .env  &&  docker compose up -d
+#
+# Notes:
+#  - Listens on 127.0.0.1 only. Public ingress is meant to go through a reverse
+#    proxy (Caddy/Traefik/nginx) that terminates TLS. UFW does NOT block
+#    Docker-published ports, so a 0.0.0.0 binding here would bypass host firewall.
+#  - Storage is a named volume to avoid host-uid vs container-uid collisions.
+#    Backup with:  docker run --rm -v notepad_storage:/data:ro -v $PWD:/out busybox tar czf /out/notepad-storage-$(date +%F).tgz /data
+
 services:
   notepad:
     container_name: notepad
-    image: athlon1600/notepad:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: notepad-secure:latest
+    restart: unless-stopped
+
     environment:
       NODE_ENV: production
-#    build:
-#      context: "."
-#      target: "runner"
+      PORT: 3000
+      # The `:?...` syntax makes compose fail fast if SERVER_SECRET is empty
+      # rather than starting an insecure backend (which would then exit 1 on
+      # its own — but compose's message is more actionable).
+      SERVER_SECRET: ${SERVER_SECRET:?SERVER_SECRET must be set — see .env.example}
+      STORAGE_DIR: /data/storage
+
     volumes:
-      - ./backend/storage:/app/backend/storage
-      - ./backend/public:/app/backend/public
+      - storage:/data/storage
+
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
+
+    # Hardening — every line below counter a specific audit Docker finding.
+    read_only: true
+    tmpfs:
+      - /tmp:size=10m,mode=1777
+      - /app/backend/.npm:size=5m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 200
+    mem_limit: 256m
+    cpus: 0.5
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  storage:
+    driver: local
