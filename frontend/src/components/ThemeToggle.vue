@@ -28,7 +28,7 @@
 <script>
 import { ref, onMounted } from 'vue';
 
-const STORAGE_KEY = 'notepad-secure/theme';
+const STORAGE_KEY = 'lockpad/theme';
 
 export default {
   name: 'ThemeToggle',

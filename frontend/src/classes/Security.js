@@ -1,4 +1,4 @@
-// Security.js — modern client-side crypto for notepad-secure.
+// Security.js — modern client-side crypto for lockpad.
 //
 // Replaces the upstream implementation (AES-CBC with Math.random IVs, scrypt N=2^14,
 // hardcoded salt, UTF-16LE encoding, unauthenticated ciphertext).
@@ -92,8 +92,8 @@ export class Security {
       return new Uint8Array(buf);
     };
     return {
-      authKey: await expand('notepad-secure/auth/v2', 128),
-      encKey:  await expand('notepad-secure/enc/v2',  256),
+      authKey: await expand('lockpad/auth/v2', 128),
+      encKey:  await expand('lockpad/enc/v2',  256),
     };
   }
 
