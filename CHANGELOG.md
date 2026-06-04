@@ -2,6 +2,32 @@
 
 All security-relevant changes vs. upstream Athlon1600/notepad.
 
+## [1.0.1] — multi-arch + CI release pipeline
+
+First release built by the GitHub Actions release workflow. The v1.0.0
+manual push was linux/arm64-only (built on an Apple Silicon Mac) and
+crashed with `exec format error` on amd64 hosts (Synology, most cloud VMs).
+This release ships a real multi-arch manifest.
+
+### Added
+- `.github/workflows/release.yml` — multi-arch buildx + Docker Hub push
+  + cosign keyless signing via GitHub OIDC, triggered on tag push.
+- OCI image labels carry version + revision + source URL automatically.
+
+### Changed
+- Image manifest is now multi-arch (`linux/amd64` + `linux/arm64`).
+- Cosign signature identity moves from email-based (`hello@frontmatters.dev`
+  device flow) to workflow-based (the release workflow path + tag, via
+  GitHub Actions OIDC) — stronger binding, no human-in-the-loop.
+
+### Removed
+- `etc/Caddyfile-local`: leftover upstream local-dev config with
+  `notepad.test` domain and the same `file_server` corpus-leak vector
+  removed from the production Caddyfile.
+- `.github/workflows/docker-image.yml`: upstream CI that pushed to
+  `athlon1600/notepad:latest` — never tested in this fork.
+- `.dockerignore`: dropped `notepad-redesign` reference (folder outside repo).
+
 ## [1.0.0] — Lockpad
 
 First release under the Lockpad name. Marks the transition from
