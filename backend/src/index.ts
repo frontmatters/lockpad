@@ -40,7 +40,7 @@ apiRouter.get('/', function (req: Request, res: Response) {
 });
 
 // Health endpoint stays OUTSIDE the rate limiter so the Docker HEALTHCHECK
-// (Phase 3) never trips the bucket and starts flapping the container.
+// never trips the bucket and starts flapping the container.
 apiRouter.get('/health', function (req: Request, res: Response) {
     res.status(200).json({ status: 'ok' });
 });

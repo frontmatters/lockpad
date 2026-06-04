@@ -42,10 +42,10 @@ export class Server {
     protected enableSecurityHeaders() {
 
         this.app.use(helmet({
-            // CSP: SPA bundle runs with no inline scripts after Phase 4 build,
-            // and connect-src is same-origin (no external API calls).
-            // 'unsafe-inline' for styles remains temporarily until Tailwind output
-            // gets a build-time hash; tighten in Phase 5.
+            // CSP: SPA bundle has no inline scripts and only same-origin
+            // connect-src. 'unsafe-inline' for styles is required by Vue's
+            // injected scoped-style CSS; can be tightened to hash-based once
+            // the build emits style-hashes alongside the bundle.
             contentSecurityPolicy: {
                 directives: {
                     defaultSrc: ["'self'"],
@@ -69,10 +69,10 @@ export class Server {
             hsts: isProd ? { maxAge: 31536000, includeSubDomains: true, preload: false } : false,
         }));
 
-        // Explicitly deny the upstream /backups/* route. Past iterations of this
-        // app shipped a cron that dumped encrypted notes to public/backups/ where
-        // express.static would serve them — a corpus-leak vector. We remove the
-        // script in this fork (see Phase 2.4) AND defensively block the path.
+        // Explicitly deny /backups/* — upstream shipped a cron that dumped
+        // encrypted notes into public/backups/ where express.static served them
+        // (corpus-leak vector). The script is removed in this fork; this
+        // middleware is defense-in-depth against accidental reintroduction.
         this.app.use((req, res, next) => {
             if (req.path.startsWith('/backups')) {
                 res.status(404).end();
@@ -83,17 +83,11 @@ export class Server {
     }
 
     protected enablePost() {
-
-        this.app.use(express.urlencoded({
-            extended: true,
-            limit: BODY_LIMIT
-        }));
-
+        // text/plain only — notes are sent as opaque envelope JSON strings.
+        // No urlencoded (extra `qs` parser surface) and no JSON parser
+        // (server is opaque to envelope shape).
         this.app.use(express.text({
-            limit: BODY_LIMIT
-        }));
-
-        this.app.use(express.json({
+            type: '*/*',
             limit: BODY_LIMIT
         }));
     }

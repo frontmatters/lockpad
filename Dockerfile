@@ -3,16 +3,15 @@
 # ============================================================================
 # Lockpad — multi-stage, non-root, production image
 # ----------------------------------------------------------------------------
-# Base image pinning: tags below should be replaced with @sha256:<digest> at
-# release time (see Phase 5 release prep). Suggested fetch:
+# Base image pinned by @sha256: digest. To refresh:
 #   docker buildx imagetools inspect node:20-alpine3.22 --format '{{json .}}'
 # ============================================================================
 
 # ----- stage: frontend bundle -----
 #
-# Plain Alpine: prerender-spa-plugin was dropped in Phase 4.2, so no
-# headless Chrome and no libnss/libgbm/X11 stack is needed at build time.
-FROM node:20-alpine3.22 AS frontend-builder
+# Plain Alpine: no prerender, so no headless Chrome / libnss / libgbm / X11
+# stack needed at build time.
+FROM node:20-alpine3.22@sha256:8f47899606d000b0704e992f927fe7335adcd0d6c98851600072fb6e14a13e60 AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json* ./
 # Prefer `npm ci` when a lockfile exists (reproducible), fall back to install.
@@ -23,7 +22,7 @@ RUN npm run build
 
 
 # ----- stage: backend compile -----
-FROM node:20-alpine3.22 AS backend-builder
+FROM node:20-alpine3.22@sha256:8f47899606d000b0704e992f927fe7335adcd0d6c98851600072fb6e14a13e60 AS backend-builder
 WORKDIR /app/backend
 COPY backend/package.json backend/package-lock.json* ./
 RUN if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
@@ -32,7 +31,13 @@ RUN npm run build
 
 
 # ----- stage: runtime -----
-FROM node:20-alpine3.22 AS runner
+FROM node:20-alpine3.22@sha256:8f47899606d000b0704e992f927fe7335adcd0d6c98851600072fb6e14a13e60 AS runner
+
+LABEL org.opencontainers.image.title="Lockpad" \
+      org.opencontainers.image.description="Self-hostable, zero-knowledge notepad with passphrase-only login" \
+      org.opencontainers.image.vendor="Frontmatters" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.version="1.0.0"
 
 ENV NODE_ENV=production \
     PORT=3000 \

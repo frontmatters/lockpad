@@ -1,9 +1,8 @@
 // API client.
 //
 // All notes endpoints accept the auth_key in the `Authorization: Bearer <hex32>`
-// header — never in the URL path. This matches the backend Phase 2.2 contract
-// and keeps the 16-byte authentication material out of nginx access logs,
-// browser history, and Referer-on-outbound-links.
+// header — never in the URL path. Keeps the 16-byte authentication material
+// out of nginx access logs, browser history, and Referer-on-outbound-links.
 
 function toHex(u8) {
   let s = '';
