@@ -1,71 +1,57 @@
 <template>
+  <header class="header">
+    <div class="header-left">
+      <button class="brand" type="button" @click="goHome">notepad</button>
+      <span v-if="state.isAuthenticated" class="note-meta">
+        <span class="note-dot" :style="{ background: noteHue }"></span>
+        <span class="note-id">{{ noteIdShort }}</span>
+      </span>
+    </div>
+    <div class="header-right">
+      <ThemeToggle />
+    </div>
+  </header>
 
-  <div class="header" :style="{'background-image': `linear-gradient(to right, cornsilk, cornsilk, ${noteColor})`}">
-
-    <h1 class="mb-0">
-        <span class="hidden md:inline mr-1">&#x1F4C3;</span>
-        <a href="/" @click.prevent="goHome" class="brand">notepad.mx</a>
-        <template v-if="documentIdShort">
-            <span class="mx-2">&ndash;</span>#{{ documentIdShort }}
-        </template>
-    </h1>
-
-    <div class="hidden md:block flex-grow text-center items-center mb-0" v-html="banner"></div>
-
-      <nav class="nav-links hidden md:flex">
-          <a href="https://github.com/Athlon1600/notepad" target="_blank" rel="nofollow noopener noreferrer">GitHub Repo</a>
-      </nav>
-
-  </div>
-
-    <Editor v-if="state.authKey"></Editor>
-    <Home v-else></Home>
-
+  <Editor v-if="state.isAuthenticated" :note-hue="noteHue" />
+  <Home v-else />
 </template>
 
 <script>
-import Editor from "./Editor.vue";
-import Home from "./Home.vue";
-
-import store from "../store";
-import {HEADER_TEXT} from "../config";
+import { computed } from 'vue';
+import store from '../store';
+import Home from './Home.vue';
+import Editor from './Editor.vue';
+import ThemeToggle from './ThemeToggle.vue';
 
 export default {
-  components: {
-    Home,
-    Editor
-  },
-  data() {
-    return {
-      state: store.state,
-        banner: HEADER_TEXT
-    }
-  },
-  computed: {
-    error() {
-      return store.state.error
-    },
-    noteColor(){
-        if (store.state.authKey) {
-            const hex = (store.state.authKey || "").substring(0, 8);
-            return '#' + hex;
-        }
+  name: 'App',
+  components: { Home, Editor, ThemeToggle },
+  setup() {
+    const state = store.state;
 
-        return 'cornsilk';
-    },
-    documentIdShort() {
-
-      if (store.state.authKey) {
-        return (store.state.authKey || "").substring(0, 8);
+    // Per-note accent color derived from the urlKey (already a public
+    // identifier). Deterministic so a returning user sees the same hue;
+    // leaks no key material since the urlKey itself is what's sent in
+    // every API request.
+    const noteHue = computed(() => {
+      if (!state.urlKey) return '#4a8f2c';
+      let h = 0;
+      for (let i = 0; i < state.urlKey.length; i++) {
+        h = ((h << 5) - h + state.urlKey.charCodeAt(i)) | 0;
       }
+      const r = (h & 0xff);
+      const g = (h >> 8) & 0xff;
+      const b = (h >> 16) & 0xff;
+      return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+    });
 
-      return null;
-    }
-  },
-  methods: {
-    goHome() {
+    const noteIdShort = computed(() => (state.urlKey || '').slice(0, 8));
+
+    function goHome() {
       store.actions.reset();
     }
-  }
-}
+
+    return { state, noteHue, noteIdShort, goHome };
+  },
+};
 </script>
