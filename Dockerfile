@@ -5,14 +5,14 @@
 # ----------------------------------------------------------------------------
 # Base image pinning: tags below should be replaced with @sha256:<digest> at
 # release time (see Phase 5 release prep). Suggested fetch:
-#   docker buildx imagetools inspect node:20.18.0-alpine3.20 --format '{{json .}}'
+#   docker buildx imagetools inspect node:20-alpine3.22 --format '{{json .}}'
 # ============================================================================
 
 # ----- stage: frontend bundle -----
 #
 # Plain Alpine: prerender-spa-plugin was dropped in Phase 4.2, so no
 # headless Chrome and no libnss/libgbm/X11 stack is needed at build time.
-FROM node:20.18.0-alpine3.20 AS frontend-builder
+FROM node:20-alpine3.22 AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json* ./
 # Prefer `npm ci` when a lockfile exists (reproducible), fall back to install.
@@ -23,7 +23,7 @@ RUN npm run build
 
 
 # ----- stage: backend compile -----
-FROM node:20.18.0-alpine3.20 AS backend-builder
+FROM node:20-alpine3.22 AS backend-builder
 WORKDIR /app/backend
 COPY backend/package.json backend/package-lock.json* ./
 RUN if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
@@ -32,7 +32,7 @@ RUN npm run build
 
 
 # ----- stage: runtime -----
-FROM node:20.18.0-alpine3.20 AS runner
+FROM node:20-alpine3.22 AS runner
 
 ENV NODE_ENV=production \
     PORT=3000 \
@@ -50,7 +50,17 @@ WORKDIR /app
 COPY backend/package.json backend/package-lock.json* ./backend/
 RUN cd backend && \
     (if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev --no-audit --no-fund; fi) && \
-    npm cache clean --force
+    npm cache clean --force && \
+    rm -rf /root/.npm \
+           /usr/local/lib/node_modules/npm \
+           /usr/local/lib/node_modules/corepack \
+           /usr/local/bin/npm \
+           /usr/local/bin/npx \
+           /usr/local/bin/corepack
+# npm + npx + corepack only exist for installation. Removing them at runtime
+# also removes ~10 HIGH/CRITICAL CVEs that live inside the bundled `glob`,
+# `minimatch`, and `tar` versions npm carries (trivy false-positives for our
+# code, but real CVEs nonetheless and zero reason to ship them).
 
 # Built artifacts only — no source, no tsconfig, no tests.
 COPY --from=backend-builder  --chown=10001:10001 /app/backend/dist     ./backend/dist
