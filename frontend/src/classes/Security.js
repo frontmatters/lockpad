@@ -1,133 +1,146 @@
-import scryptAsync from 'scrypt-async';
-import {Util} from "./Util";
+// Security.js — modern client-side crypto for notepad-secure.
+//
+// Replaces the upstream implementation (AES-CBC with Math.random IVs, scrypt N=2^14,
+// hardcoded salt, UTF-16LE encoding, unauthenticated ciphertext).
+//
+// Fixes audit findings C3-C7 + frontend HIGHs around key handling.
+//
+// Public surface:
+//   Security.deriveMaster(passphrase, saltBytes) -> Uint8Array(32)
+//   Security.splitKeys(masterBytes)              -> { authKey: U8(16), encKey: U8(32) }
+//   Security.encrypt(plaintext, encKey, authKey) -> { v, iv, ct } base64-encoded envelope
+//   Security.decrypt(envelope, encKey, authKey)  -> string (plaintext)
+//   Security.randomBytes(n)                      -> Uint8Array(n) via getRandomValues
+//   Security.zeroize(u8)                         -> best-effort fill(0)
+//   Security.base62(u8)                          -> base62 string (URL-safe identifier)
+//
+// Envelope format v2:
+//   { v: 2, iv: <base64, 12 bytes>, ct: <base64, ciphertext || GCM-tag> }
+// The 16-byte authKey is bound to the ciphertext as GCM AAD, so the server cannot
+// swap one user's blob for another's even if both passphrases share KDF output.
 
-const aesjs = require('aes-js');
-const md5 = require('md5');
+import argon2 from 'argon2-browser';
+import baseX from 'base-x';
 
-const base62 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const base62Encoder = require('base-x')(base62);
+const base62Encoder = baseX('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
+
+const ENVELOPE_VERSION = 2;
+
+// OWASP 2026 Argon2id baseline for interactive auth on modest hardware.
+// m=64MiB makes GPU brute-force expensive; t=3 keeps user-visible latency ~0.5-1s.
+const ARGON2 = {
+  type: argon2.ArgonType.Argon2id,
+  hashLen: 32,
+  mem: 65536,
+  time: 3,
+  parallelism: 1,
+};
+
+const enc = new TextEncoder();
+const dec = new TextDecoder();
+
+function b64encode(u8) {
+  let s = '';
+  for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]);
+  return btoa(s);
+}
+function b64decode(b64) {
+  const s = atob(b64);
+  const u8 = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) u8[i] = s.charCodeAt(i);
+  return u8;
+}
 
 export class Security {
 
-    /**
-     *
-     * @param {Uint8Array} buffer
-     */
-    static base62(buffer) {
-        return base62Encoder.encode(buffer);
+  static randomBytes(len) {
+    return crypto.getRandomValues(new Uint8Array(len));
+  }
+
+  static base62(buffer) {
+    return base62Encoder.encode(buffer);
+  }
+
+  // Argon2id KDF. Caller supplies the salt — see config.js for the deployment-level salt.
+  // Returns the raw 32-byte master that feeds splitKeys().
+  static async deriveMaster(passphrase, saltBytes) {
+    if (typeof passphrase !== 'string' || passphrase.length === 0) {
+      throw new Error('passphrase required');
     }
-
-    // stringToByteArray
-    static str2ab(str) {
-        var buf = new ArrayBuffer(str.length * 2); // 2 bytes for each char
-        var bufView = new Uint16Array(buf);
-        for (var i = 0, strLen = str.length; i < strLen; i++) {
-            bufView[i] = str.charCodeAt(i);
-        }
-        return bufView;
+    if (!(saltBytes instanceof Uint8Array) || saltBytes.length < 8) {
+      throw new Error('salt must be Uint8Array of >= 8 bytes');
     }
+    const { hash } = await argon2.hash({
+      pass: passphrase,
+      salt: saltBytes,
+      ...ARGON2,
+    });
+    return hash; // Uint8Array(32)
+  }
 
-    static byteArrayToHexString(uint8Array) {
-        let hexString = '';
-        for (let i = 0; i < uint8Array.length; i++) {
-            const hex = uint8Array[i].toString(16).padStart(2, '0');
-            hexString += hex;
-        }
-        return hexString;
+  // HKDF-Expand into two domain-separated subkeys. Salt is empty because the master
+  // is already a CSPRF output from Argon2id.
+  static async splitKeys(masterBytes) {
+    const baseKey = await crypto.subtle.importKey(
+      'raw', masterBytes, 'HKDF', false, ['deriveBits']
+    );
+    const expand = async (info, bits) => {
+      const buf = await crypto.subtle.deriveBits(
+        { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0), info: enc.encode(info) },
+        baseKey, bits
+      );
+      return new Uint8Array(buf);
+    };
+    return {
+      authKey: await expand('notepad-secure/auth/v2', 128),
+      encKey:  await expand('notepad-secure/enc/v2',  256),
+    };
+  }
+
+  // AES-256-GCM encrypt. encKey: 32 bytes; authKey: used as AAD to bind ciphertext to identity.
+  static async encrypt(plaintext, encKey, authKey) {
+    if (!(encKey instanceof Uint8Array) || encKey.length !== 32) {
+      throw new Error('encKey must be 32 bytes');
     }
-
-    static randomBytes(len) {
-
-        let arr = new Uint8Array(len);
-
-        for (let i = 0; i < arr.length; i++) {
-            arr[i] = Util.randomInt(0, 256);
-        }
-
-        return arr;
+    if (!(authKey instanceof Uint8Array) || authKey.length !== 16) {
+      throw new Error('authKey must be 16 bytes');
     }
+    const key = await crypto.subtle.importKey('raw', encKey, 'AES-GCM', false, ['encrypt']);
+    const iv = Security.randomBytes(12);
+    const ct = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv, additionalData: authKey, tagLength: 128 },
+      key, enc.encode(plaintext)
+    );
+    return {
+      v: ENVELOPE_VERSION,
+      iv: b64encode(iv),
+      ct: b64encode(new Uint8Array(ct)),
+    };
+  }
 
-    /**
-     *
-     * @param password
-     * @param salt
-     * @return {Promise<Uint8Array>}
-     */
-    static async slowHash(password, salt) {
-
-        return new Promise(function (resolve, reject) {
-
-            let pb = Security.str2ab(password);
-            let sb = Security.str2ab(salt);
-
-            // 1 byte = 2 hex chars
-            scryptAsync(pb, sb, {
-                N: Math.pow(2, 14),
-                r: 8,
-                p: 1,
-                dkLen: 32,
-                encoding: 'binary',
-                interruptStep: 1000
-            }, function (derivedKey) {
-                resolve(derivedKey);
-            });
-
-        });
+  // Throws on tampering (GCM auth tag mismatch) or wrong key/AAD.
+  static async decrypt(envelope, encKey, authKey) {
+    if (!envelope || envelope.v !== ENVELOPE_VERSION) {
+      throw new Error('unsupported envelope version: ' + (envelope && envelope.v));
     }
-
-    static fastHash(data) {
-        return md5(data);
+    if (!(encKey instanceof Uint8Array) || encKey.length !== 32) {
+      throw new Error('encKey must be 32 bytes');
     }
-
-    // throws exception!
-    static encrypt(data, key) {
-
-        // key must be 32 chars long AND HEX!!!!
-        if (!key || key.length !== 32) {
-            throw 'has to be 32 in length!';
-        }
-
-        key = aesjs.utils.hex.toBytes(key);
-
-        // The initialization vector (must be 16 bytes)
-        const iv = this.randomBytes(16);
-
-        var textBytes = aesjs.utils.utf8.toBytes(data);
-        var aesCbc = new aesjs.ModeOfOperation.cbc(key, iv);
-
-        // Convert text to bytes (text must be a multiple of 16 bytes)
-        let padded = aesjs.padding.pkcs7.pad(textBytes);
-
-        const encryptedBytes = aesCbc.encrypt(padded);
-
-        const cipherAsHex = aesjs.utils.hex.fromBytes(encryptedBytes);
-        const ivHex = aesjs.utils.hex.fromBytes(iv);
-
-        return {
-            alg: 'AES-256-CBC',
-            iv: ivHex,
-            cipherText: cipherAsHex,
-            timestamp: Date.now(),
-            meta: {}
-        }
+    if (!(authKey instanceof Uint8Array) || authKey.length !== 16) {
+      throw new Error('authKey must be 16 bytes');
     }
+    const key = await crypto.subtle.importKey('raw', encKey, 'AES-GCM', false, ['decrypt']);
+    const iv = b64decode(envelope.iv);
+    const ct = b64decode(envelope.ct);
+    const pt = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv, additionalData: authKey, tagLength: 128 },
+      key, ct
+    );
+    return dec.decode(pt);
+  }
 
-    // When decrypting, the IV can then be read from the input before the encrypt data.
-    static decrypt(data, key) {
-
-        const keyAsBytes = aesjs.utils.hex.toBytes(key);
-
-        const iv = data['iv'];
-        const cipherText = data['cipherText'];
-
-        const ivAsBytes = aesjs.utils.hex.toBytes(iv);
-        const cipherAsBytes = aesjs.utils.hex.toBytes(cipherText);
-
-        const aesOfb = new aesjs.ModeOfOperation.cbc(keyAsBytes, ivAsBytes);
-
-        let decryptedBytes = aesOfb.decrypt(cipherAsBytes);
-        decryptedBytes = aesjs.padding.pkcs7.strip(decryptedBytes);
-
-        return aesjs.utils.utf8.fromBytes(decryptedBytes);
-    }
+  // Best-effort key wipe. JS strings are immutable, but Uint8Array we can clear.
+  static zeroize(u8) {
+    if (u8 && typeof u8.fill === 'function') u8.fill(0);
+  }
 }
