@@ -10,21 +10,13 @@
 
 # ----- stage: frontend bundle -----
 #
-# Bullseye-slim (Debian) is required here only because the upstream frontend
-# still uses prerender-spa-plugin-next, which spawns headless Chrome at build
-# time. After the Phase 4 redesign drops prerender, the entire libnss/libgbm
-# stack can go and this stage moves to node:20-alpine.
-FROM node:20.18.0-bullseye-slim AS frontend-builder
+# Plain Alpine: prerender-spa-plugin was dropped in Phase 4.2, so no
+# headless Chrome and no libnss/libgbm/X11 stack is needed at build time.
+FROM node:20.18.0-alpine3.20 AS frontend-builder
 WORKDIR /app/frontend
-RUN apt-get update && apt-get install -yq --no-install-recommends \
-        libnss3 libatk1.0-0 libatk-bridge2.0-0 libxkbcommon0 libgbm1 \
-        libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
-        libpango-1.0-0 libcairo2 libasound2 ca-certificates fonts-liberation \
-    && rm -rf /var/lib/apt/lists/*
 COPY frontend/package.json frontend/package-lock.json* ./
 # Prefer `npm ci` when a lockfile exists (reproducible), fall back to install.
-# The fallback exists only because this fork hasn't pushed a lockfile yet;
-# remove the `||` branch once `npm install` was run locally and committed.
+# Remove the `||` branch once a lockfile is committed in Phase 5.
 RUN if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
 COPY frontend/ ./
 RUN npm run build
