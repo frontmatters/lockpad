@@ -1,11 +1,11 @@
-# Security model — notepad-secure
+# Security model — Lockpad
 
 This document describes the threat model, cryptographic choices, and operational
-guarantees of notepad-secure. It assumes you read the [README](./README.md) first.
+guarantees of Lockpad. It assumes you read the [README](./README.md) first.
 
 ## Threat model
 
-notepad-secure is designed to be safe across three concurrent deployment shapes.
+Lockpad is designed to be safe across three concurrent deployment shapes.
 
 ### 1. Self-host, private
 
@@ -58,8 +58,8 @@ passphrase
   ↓ Argon2id (m=64MiB, t=3, p=1, hashLen=32, salt=APP_KEY)
 master (32 bytes)
   ↓ HKDF-SHA256-Expand
-  ├── info = "notepad-secure/auth/v2"  →  authKey (16 bytes, sent to server)
-  └── info = "notepad-secure/enc/v2"   →  encKey  (32 bytes, stays in browser)
+  ├── info = "lockpad/auth/v2"  →  authKey (16 bytes, sent to server)
+  └── info = "lockpad/enc/v2"   →  encKey  (32 bytes, stays in browser)
 ```
 
 - **Argon2id** with OWASP 2026 baseline parameters. m=64MiB pushes the cost into
@@ -133,7 +133,7 @@ file mode = 0o600 (only the container user can read)
 ## Reporting vulnerabilities
 
 Please open an issue on the Gitea repository or email the maintainer
-(`m.mijnals@gmail.com`) with the `[notepad-secure security]` prefix.
+(`hello@frontmatters.dev`) with the `[lockpad security]` prefix.
 
 For embargo-required findings, do **not** open a public issue. Email with
 "PGP-encrypt this" if you'd like a key.
