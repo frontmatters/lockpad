@@ -32,6 +32,3 @@ Thumbs.db
 *.log
 npm-debug.log*
 coverage
-
-# Local design mockup (not part of the app)
-notepad-redesign
