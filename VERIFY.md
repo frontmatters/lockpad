@@ -73,10 +73,10 @@ Either of these is enough; running both gives the broadest coverage.
 
 ```bash
 # Trivy — open-source, broad CVE DB
-trivy image notepad-secure:latest --severity HIGH,CRITICAL
+trivy image lockpad:latest --severity HIGH,CRITICAL
 
 # Docker Scout — Docker Inc's offering, requires `docker login`
-docker scout cves notepad-secure:latest --only-severity high,critical
+docker scout cves lockpad:latest --only-severity high,critical
 ```
 
 Expect: no HIGH/CRITICAL CVEs in app dependencies. Alpine base may have
@@ -111,7 +111,7 @@ echo "SERVER_SECRET=$(openssl rand -base64 48)" >> .env
 ```bash
 docker compose up -d
 # Wait for healthcheck to flip to "healthy" (~10-30s)
-docker inspect notepad --format='{{.State.Health.Status}}'
+docker inspect lockpad --format='{{.State.Health.Status}}'
 
 # Health endpoint
 curl -fsS http://127.0.0.1:3000/api/health
@@ -160,10 +160,10 @@ Optional: also push to GitHub mirror once that remote is added.
 
 ```bash
 # Cosign keyless signing via Sigstore (uses your GitHub/Google identity)
-cosign sign --yes ghcr.io/cartmedia/notepad-secure:0.2.0
+cosign sign --yes ghcr.io/cartmedia/lockpad:0.2.0
 
 # Verify
-cosign verify ghcr.io/cartmedia/notepad-secure:0.2.0 \
+cosign verify ghcr.io/cartmedia/lockpad:0.2.0 \
   --certificate-identity-regexp '.*' \
   --certificate-oidc-issuer-regexp '.*'
 ```
@@ -172,8 +172,8 @@ cosign verify ghcr.io/cartmedia/notepad-secure:0.2.0 \
 
 ```bash
 docker buildx build --sbom=true --provenance=true \
-  --output type=image,name=notepad-secure:0.2.0 .
+  --output type=image,name=lockpad:0.2.0 .
 
 # Inspect
-docker buildx imagetools inspect notepad-secure:0.2.0 --format '{{ json .SBOM }}'
+docker buildx imagetools inspect lockpad:0.2.0 --format '{{ json .SBOM }}'
 ```

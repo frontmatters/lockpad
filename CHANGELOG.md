@@ -2,6 +2,33 @@
 
 All security-relevant changes vs. upstream Athlon1600/notepad.
 
+## [1.0.0] — Lockpad
+
+First release under the Lockpad name. Marks the transition from
+"hardened fork of Athlon1600/notepad" (the 0.x line) into an
+independently-named product. From here, semver applies: 1.x updates
+preserve backward compatibility, 2.x reserved for breaking changes.
+
+The crypto contract, on-disk format, and HTTP API remain identical to
+0.2.0. Only the deployment-level identifiers change.
+
+### Breaking
+- Argon2id salt (APP_KEY): `notepad-secure/v2` → `lockpad/v2`. Every existing
+  on-disk blob becomes unreadable because the derived authKey changes, hence
+  the HMAC storage path changes, hence the file is no longer addressed by
+  the new derivation. Re-create notes after upgrade.
+- HKDF info strings: `notepad-secure/{auth,enc}/v2` → `lockpad/{auth,enc}/v2`.
+- localStorage key for theme preference: `notepad-secure/theme` → `lockpad/theme`.
+  Theme defaults to OS preference until the user toggles it once.
+- Docker image: `notepad-secure:latest` → `lockpad:latest`. Container name:
+  `notepad` → `lockpad`. Caddy DOMAIN default: `notepad.local` → `lockpad.local`.
+  Volume name follows the project (directory) name and stays
+  `<project>_storage`.
+
+### Other
+- README rewritten as a Lockpad-first document instead of an
+  upstream-template-with-fork-notice.
+
 ## [0.2.0] — security-rewrite
 
 First release of the hardened fork. See [SECURITY.md](./SECURITY.md) for the
