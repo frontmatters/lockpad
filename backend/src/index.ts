@@ -36,7 +36,7 @@ const writeLimiter = rateLimit({
 const apiRouter = Router();
 
 apiRouter.get('/', function (req: Request, res: Response) {
-    res.json({ message: 'notepad-secure api' });
+    res.json({ message: 'lockpad api' });
 });
 
 // Health endpoint stays OUTSIDE the rate limiter so the Docker HEALTHCHECK

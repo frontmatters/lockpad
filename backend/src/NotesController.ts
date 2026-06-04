@@ -3,7 +3,7 @@ import { Database } from "./Database";
 
 // All three endpoints rely on the requireAuthKey middleware (see Auth.ts) to
 // populate req.authKey before reaching here. The authKey is the 32-hex output
-// of the client's HKDF-Expand("notepad-secure/auth/v2") on their Argon2id
+// of the client's HKDF-Expand("lockpad/auth/v2") on their Argon2id
 // master. The server treats it as an opaque identifier and never inspects the
 // blob it indexes.
 //

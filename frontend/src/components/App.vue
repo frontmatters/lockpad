@@ -1,7 +1,7 @@
 <template>
   <header class="header">
     <div class="header-left">
-      <button class="brand" type="button" @click="goHome">notepad</button>
+      <button class="brand" type="button" @click="goHome">lockpad</button>
       <span v-if="state.isAuthenticated" class="note-meta">
         <span class="note-dot" :style="{ background: noteHue }"></span>
         <span class="note-id">{{ noteIdShort }}</span>
