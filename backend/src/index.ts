@@ -1,4 +1,5 @@
 import { NextFunction, Request, RequestHandler, Response, Router } from "express";
+import rateLimit from "express-rate-limit";
 import { Server } from "./Server";
 import { Config } from "./config";
 import { NotesController } from "./NotesController";
@@ -12,12 +13,34 @@ const safeHandler = function (fn: RequestHandler) {
     };
 };
 
+// Rate limits — in-memory store. Single-instance only; for multi-instance
+// behind a load balancer, swap the store for `rate-limit-redis`. Sized for a
+// human user with debounced auto-save (writeLimiter) and intermittent reads
+// (apiLimiter); enumeration / brute-force is cut to a useless trickle.
+const apiLimiter = rateLimit({
+    windowMs: 60_000,
+    max: 60,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { error: 'too many requests' },
+});
+
+const writeLimiter = rateLimit({
+    windowMs: 60_000,
+    max: 10,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { error: 'too many writes' },
+});
+
 const apiRouter = Router();
 
 apiRouter.get('/', function (req: Request, res: Response) {
     res.json({ message: 'notepad-secure api' });
 });
 
+// Health endpoint stays OUTSIDE the rate limiter so the Docker HEALTHCHECK
+// (Phase 3) never trips the bucket and starts flapping the container.
 apiRouter.get('/health', function (req: Request, res: Response) {
     res.status(200).json({ status: 'ok' });
 });
@@ -26,12 +49,12 @@ server.app.use('/api', apiRouter);
 
 const notesRouter = Router();
 
-// Every notes route is gated on a valid Authorization: Bearer <hex32>.
-// No id-in-URL — the auth_key lives in the header.
+// All notes routes: rate-limited and authenticated.
+notesRouter.use(apiLimiter);
 notesRouter.use(requireAuthKey);
-notesRouter.get('/',    safeHandler(NotesController.read));
-notesRouter.post('/',   safeHandler(NotesController.write));
-notesRouter.delete('/', safeHandler(NotesController.delete));
+notesRouter.get('/',                  safeHandler(NotesController.read));
+notesRouter.post('/',   writeLimiter, safeHandler(NotesController.write));
+notesRouter.delete('/', writeLimiter, safeHandler(NotesController.delete));
 
 server.app.use('/api/notes', notesRouter);
 
