@@ -1,6 +1,6 @@
 {
   "name": "frontend",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "copy:backend": "copyfiles -u 1 \"dist/**/*\" ../backend/public",
@@ -10,14 +10,11 @@
     "watch": "cross-env NODE_ENV=development webpack-dev-server --progress --hot"
   },
   "dependencies": {
-    "aes-js": "^3.1.2",
+    "argon2-browser": "^1.18.0",
     "base-x": "^4.0.0",
     "core-js": "^3.6.5",
     "debounce": "^1.2.1",
-    "md5": "^2.3.0",
     "sass": "^1.74.1",
-    "scrypt-async": "^2.0.1",
-    "sha.js": "^2.4.11",
     "vue": "^3.2.47"
   },
   "devDependencies": {
