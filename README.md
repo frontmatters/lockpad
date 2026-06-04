@@ -61,9 +61,39 @@ The container listens on `127.0.0.1:3000` only. For public access put
 
 ## Verification
 
-See [VERIFY.md](./VERIFY.md) for a step-by-step list (lockfile sanity, tests,
-build, `npm audit`, `trivy` CVE scan, smoke tests, security headers, release
-tagging).
+### Image signature
+
+The image on Docker Hub is signed with [Sigstore cosign](https://docs.sigstore.dev/cosign/overview/)
+using keyless GitHub OIDC. Anyone can verify that the image you pulled came
+from this project, and not from a registry compromise or maintainer-account
+takeover:
+
+```bash
+docker pull frontmatters/lockpad:1.0.0
+
+cosign verify frontmatters/lockpad:1.0.0 \
+  --certificate-identity hello@frontmatters.dev \
+  --certificate-oidc-issuer https://github.com/login/oauth
+```
+
+A successful verify confirms:
+
+- the image digest matches one we signed at publication time,
+- the signature is recorded immutably in the [Sigstore Rekor](https://www.sigstore.dev/)
+  transparency log (a public append-only ledger), and
+- the signing certificate's `Subject Alternative Name` is `hello@frontmatters.dev`
+  via GitHub OAuth.
+
+For the `v1.0.0` image the Rekor entry is at
+[search.sigstore.dev/?logIndex=1725095768](https://search.sigstore.dev/?logIndex=1725095768)
+— it lives on the public log forever, regardless of what happens to this
+account or repository.
+
+### Build-time checks
+
+See [VERIFY.md](./VERIFY.md) for the full pre-release checklist (lockfile
+sanity, tests, build, `npm audit`, `trivy` CVE scan, smoke tests, security
+headers, release tagging).
 
 ## Security model
 
