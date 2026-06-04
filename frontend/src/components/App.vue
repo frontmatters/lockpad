@@ -29,10 +29,10 @@ export default {
   setup() {
     const state = store.state;
 
-    // Per-note accent color derived from the urlKey (already a public
-    // identifier). Deterministic so a returning user sees the same hue;
-    // leaks no key material since the urlKey itself is what's sent in
-    // every API request.
+    // Per-note accent color derived from the urlKey (a base62 projection
+    // of the same 16 bytes the server already sees as hex in every
+    // Authorization header). Deterministic so a returning user sees the
+    // same hue; leaks no new key material beyond what's already on the wire.
     const noteHue = computed(() => {
       if (!state.urlKey) return '#4a8f2c';
       let h = 0;

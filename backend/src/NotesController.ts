@@ -12,9 +12,9 @@ import { Database } from "./Database";
 //   POST → 204 no content
 //   DEL  → 204 no content (even if there was nothing to delete)
 //
-// Mitigates the existence-oracle from the audit: status codes no longer
-// distinguish hit/miss, and Content-Length is still observable but rate-limiting
-// (Phase 2.4) caps how fast it can be enumerated.
+// Mitigates the existence-oracle from the upstream design: status codes no
+// longer distinguish hit/miss, and although Content-Length is still
+// observable, the rate limiter caps enumeration speed.
 
 export class NotesController {
 

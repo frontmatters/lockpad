@@ -9,7 +9,9 @@ declare global {
     }
 }
 
-const BEARER_RE = /^Bearer\s+([0-9a-f]{32})$/;
+// HTTP scheme tokens are case-insensitive per RFC 7235 §2.1.
+// Hex digits are accepted in both cases; we normalize to lower-case below.
+const BEARER_RE = /^Bearer\s+([0-9a-fA-F]{32})$/i;
 
 // Extracts and validates a 32-hex auth_key from the Authorization: Bearer header.
 //
@@ -29,6 +31,6 @@ export function requireAuthKey(req: Request, res: Response, next: NextFunction):
         return;
     }
 
-    req.authKey = m[1];
+    req.authKey = m[1].toLowerCase();
     next();
 }

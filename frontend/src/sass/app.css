@@ -293,13 +293,34 @@ body {
   background: var(--bg-input);
   color: var(--text);
   border: 1px solid var(--border);
-  padding: 14px 16px;
+  padding: 14px 48px 14px 16px;
   font: 17px/1.4 var(--font-mono);
   letter-spacing: 0.02em;
   outline: none;
   transition: border-color var(--t-fast);
 }
 .login-input:focus { border-color: var(--focus); }
+.login-reveal {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: 32px; height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--t-fast);
+}
+.login-reveal:hover { color: var(--text); }
+.login-reveal:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.login-reveal svg { width: 18px; height: 18px; display: block; }
 .login-input::placeholder { color: var(--text-faint); }
 .login-input[disabled] { cursor: not-allowed; color: var(--text-muted); }
 
