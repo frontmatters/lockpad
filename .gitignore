@@ -1,5 +1,22 @@
 .idea
+.vscode
+.DS_Store
 node_modules
 dist
 **/archive.tar.gz
 **/bundle.js*
+
+# Secrets — never commit
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Runtime state
+backend/storage
+backend/public/backups
+
+# Logs / coverage
+*.log
+npm-debug.log*
+coverage
