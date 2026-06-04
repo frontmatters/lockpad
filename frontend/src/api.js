@@ -1,55 +1,51 @@
-const apiBaseUri = '';
+// API client.
+//
+// All notes endpoints accept the auth_key in the `Authorization: Bearer <hex32>`
+// header — never in the URL path. This matches the backend Phase 2.2 contract
+// and keeps the 16-byte authentication material out of nginx access logs,
+// browser history, and Referer-on-outbound-links.
+
+function toHex(u8) {
+  let s = '';
+  for (let i = 0; i < u8.length; i++) s += u8[i].toString(16).padStart(2, '0');
+  return s;
+}
+
+function headers(authKey, extra) {
+  return {
+    'Authorization': 'Bearer ' + toHex(authKey),
+    ...(extra || {}),
+  };
+}
 
 class Api {
 
-    async get(code) {
+  // Returns the raw JSON-envelope string from the server. Empty string if no note.
+  async get(authKey) {
+    const res = await fetch('/api/notes', {
+      method: 'GET',
+      headers: headers(authKey),
+    });
+    if (!res.ok) throw new Error('GET /api/notes failed: ' + res.status);
+    return res.text();
+  }
 
-        const options = {
-            method: 'GET',
-        }
+  async save(authKey, body) {
+    const res = await fetch('/api/notes', {
+      method: 'POST',
+      headers: headers(authKey, { 'Content-Type': 'text/plain' }),
+      body,
+    });
+    if (!res.ok) throw new Error('POST /api/notes failed: ' + res.status);
+  }
 
-        return fetch('/api/notes/' + code, options)
-            .then(response => response.text());
-    }
-
-    /**
-     *
-     * @param code
-     * @param contents
-     * @returns {Promise<string>}
-     */
-    async save(code, contents) {
-
-        const options = {
-            method: 'POST',
-            headers: {
-                "Content-Type": "text/plain"
-            },
-            body: contents
-        };
-
-        return fetch('/api/notes/' + code, options)
-            .then(response => {
-
-                if (!response.ok) {
-                    console.log(response);
-                    throw new Error(response.statusText);
-                }
-
-                return response.text();
-            });
-    }
-
-    async delete(code) {
-
-        const options = {
-            method: 'DELETE'
-        };
-
-        return fetch('/api/notes/' + code, options)
-            .then(response => response.text());
-    }
+  async delete(authKey) {
+    const res = await fetch('/api/notes', {
+      method: 'DELETE',
+      headers: headers(authKey),
+    });
+    if (!res.ok) throw new Error('DELETE /api/notes failed: ' + res.status);
+  }
 }
-
 
 export default new Api();
