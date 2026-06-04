@@ -1,10 +1,15 @@
-# Notepad
+# Notepad — security-hardened fork
 
-![GitHub last commit](https://img.shields.io/github/last-commit/athlon1600/notepad)
-![Docker Pulls](https://img.shields.io/docker/pulls/athlon1600/notepad)
+> **Fork notice.** This is a hardened fork of [Athlon1600/notepad](https://github.com/Athlon1600/notepad) by
+> mistermeneer / cartmedia, intended for self-hosted and publicly-shareable deployment.
+> The upstream is a well-intentioned design but a security audit surfaced 9 critical and 16 high findings —
+> see [`CHANGELOG.md`](./CHANGELOG.md) for the fixes. The `security-rewrite` branch addresses these.
+> **Blobs encrypted by upstream are NOT readable by this fork** (intentional breaking change — old envelope used
+> AES-CBC with `Math.random()` IVs, weak scrypt params, and a global salt).
+
 ![GitHub](https://img.shields.io/github/license/athlon1600/notepad)
 
-A simple web-based notepad for writing and securely storing notes online.
+A self-hostable, zero-knowledge web notepad with passphrase-only login.
 Useful for easy sharing of text between people or devices.
 
 - No registration process. You use a passphrase as your login.
