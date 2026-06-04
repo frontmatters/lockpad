@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 # ============================================================================
-# notepad-secure — multi-stage, non-root, production image
+# Lockpad — multi-stage, non-root, production image
 # ----------------------------------------------------------------------------
 # Base image pinning: tags below should be replaced with @sha256:<digest> at
 # release time (see Phase 5 release prep). Suggested fetch:
