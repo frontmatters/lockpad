@@ -19,7 +19,7 @@
 // The 16-byte authKey is bound to the ciphertext as GCM AAD, so the server cannot
 // swap one user's blob for another's even if both passphrases share KDF output.
 
-import argon2 from 'argon2-browser';
+import { argon2id } from 'hash-wasm';
 import baseX from 'base-x';
 
 const base62Encoder = baseX('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
@@ -29,11 +29,11 @@ const ENVELOPE_VERSION = 2;
 // OWASP 2026 Argon2id baseline for interactive auth on modest hardware.
 // m=64MiB makes GPU brute-force expensive; t=3 keeps user-visible latency ~0.5-1s.
 const ARGON2 = {
-  type: argon2.ArgonType.Argon2id,
-  hashLen: 32,
-  mem: 65536,
-  time: 3,
+  hashLength: 32,
+  memorySize: 65536,
+  iterations: 3,
   parallelism: 1,
+  outputType: 'binary',
 };
 
 const enc = new TextEncoder();
@@ -70,8 +70,8 @@ export class Security {
     if (!(saltBytes instanceof Uint8Array) || saltBytes.length < 8) {
       throw new Error('salt must be Uint8Array of >= 8 bytes');
     }
-    const { hash } = await argon2.hash({
-      pass: passphrase,
+    const hash = await argon2id({
+      password: passphrase,
       salt: saltBytes,
       ...ARGON2,
     });
