@@ -71,7 +71,8 @@ export class Server {
         // script in this fork (see Phase 2.4) AND defensively block the path.
         this.app.use((req, res, next) => {
             if (req.path.startsWith('/backups')) {
-                return res.status(404).end();
+                res.status(404).end();
+                return;
             }
             next();
         });
