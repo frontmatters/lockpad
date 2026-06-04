@@ -10,9 +10,9 @@
     "watch": "cross-env NODE_ENV=development webpack-dev-server --progress --hot"
   },
   "dependencies": {
-    "argon2-browser": "^1.18.0",
     "base-x": "^4.0.0",
     "debounce": "^1.2.1",
+    "hash-wasm": "^4.12.0",
     "vue": "^3.4.0"
   },
   "devDependencies": {
