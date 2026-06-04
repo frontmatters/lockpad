@@ -2,7 +2,29 @@
 
 All security-relevant changes vs. upstream Athlon1600/notepad.
 
-## [Unreleased] — security-rewrite branch
+## [0.2.0] — security-rewrite
+
+First release of the hardened fork. See [SECURITY.md](./SECURITY.md) for the
+full threat model and [README.md](./README.md) for deployment instructions.
+
+**Breaking:** blobs encrypted by upstream `Athlon1600/notepad` are NOT readable
+by this version. Re-create notes on first run.
+
+### Highlights
+
+- Modern crypto: Argon2id + AES-256-GCM + HKDF, all via `window.crypto.subtle`
+  + `hash-wasm`. CSPRNG-sourced IVs, AEAD with AAD binding, server-side HMAC
+  on the storage path.
+- Backend: auth_key moves from URL path to `Authorization: Bearer` header.
+  Rate-limited (60 req/min, 10 writes/min per IP). Helmet security headers.
+  Express 4.21.2. Unused `ws` dependency removed.
+- Container: non-root (uid 10001), pinned base image, `cap_drop: ALL`,
+  `read_only`, `no-new-privileges`, named volume for storage, healthcheck.
+- Frontend: redesigned UI (Ableton-aesthetic, OKLCH tokens, native View
+  Transitions). prerender-spa-plugin and tailwindcss dropped.
+- Tests: 14 vitest cases verify the crypto contract empirically.
+
+
 
 ### Breaking
 - **Envelope format incompatible with upstream.** Blobs encrypted by upstream cannot be read by this fork.
