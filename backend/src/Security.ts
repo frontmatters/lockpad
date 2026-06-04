@@ -1,35 +1,19 @@
-import * as Buffer from "buffer";
+import { createHmac } from "crypto";
+import { Config } from "./config";
 
-const crypto = require('crypto');
+// Single purpose: derive an on-disk filename from a client-presented authKey,
+// keyed to a server-side secret. This breaks the upstream chain where the
+// filename was a pure function of user-known material (audit CRITICAL #1):
+//
+//   upstream:  filename = md5(authKey)            ← offline brute-forceable
+//   here:      filename = HMAC-SHA256(SECRET, authKey)
+//
+// An attacker who exfiltrates the storage directory still gets HMAC outputs,
+// but cannot offline-grind passphrases against them without ALSO compromising
+// the server to obtain SERVER_SECRET. Two independent breaches required, not one.
 
-export const md5 = (data: string): string => {
-    return crypto.createHash('md5').update(data).digest("hex");
-}
-
-export const md5WithRounds = function (data: string, salt: string, rounds: number): string {
-
-    let hash = md5(data + salt);
-
-    for (let i = 1; i < rounds; i++) {
-        hash = crypto.createHash('md5').update(hash + data + salt + i).digest("hex");
-    }
-
-    return hash;
-}
-
-export const fastHash = function (data: string): Buffer {
-    return crypto.createHash('sha512').update(data).digest();
-}
-
-export const slowHash = function (data: string, salt: string): Buffer {
-
-    // default
-    let cost = Math.pow(2, 14);
-
-    return crypto.scryptSync(data, salt, 32, {
-        cost: cost,
-        blockSize: 8, // default
-        parallelization: 1, // default
-        maxmem: Number.MAX_SAFE_INTEGER
-    });
+export function storageKey(authKey: string): string {
+    return createHmac('sha256', Config.serverSecret)
+        .update(authKey, 'utf8')
+        .digest('hex');
 }
