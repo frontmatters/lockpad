@@ -20,3 +20,4 @@ backend/public/backups
 *.log
 npm-debug.log*
 coverage
+screenshots/
