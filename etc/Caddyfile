@@ -1,7 +1,7 @@
-# notepad-secure — Caddyfile.
+# Lockpad — Caddyfile.
 #
 # Configured via the $DOMAIN env var (see .env.example). Defaults to
-# notepad.local for LAN / Tailscale-MagicDNS deployments where Caddy uses
+# lockpad.local for LAN / Tailscale-MagicDNS deployments where Caddy uses
 # its internal CA. For a public domain, Caddy obtains Let's Encrypt certs
 # automatically.
 
@@ -9,7 +9,7 @@
 	admin off
 }
 
-{$DOMAIN:notepad.local} {
+{$DOMAIN:lockpad.local} {
 	encode gzip zstd
 
 	# Strip Caddy's own version banner.

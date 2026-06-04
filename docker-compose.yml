@@ -1,8 +1,8 @@
-# notepad-secure — production-oriented compose file.
+# Lockpad — production-oriented compose file.
 #
 # Required env (see .env.example):
 #   SERVER_SECRET   32+ char random string. Hard-fails if missing.
-#   DOMAIN          (optional) for Caddy reverse proxy; defaults to notepad.local
+#   DOMAIN          (optional) for Caddy reverse proxy; defaults to lockpad.local
 #
 # Bring up:
 #   cp .env.example .env  &&  edit .env  &&  docker compose up -d
@@ -12,15 +12,17 @@
 #    proxy (Caddy/Traefik/nginx) that terminates TLS. UFW does NOT block
 #    Docker-published ports, so a 0.0.0.0 binding here would bypass host firewall.
 #  - Storage is a named volume to avoid host-uid vs container-uid collisions.
-#    Backup with:  docker run --rm -v notepad_storage:/data:ro -v $PWD:/out busybox tar czf /out/notepad-storage-$(date +%F).tgz /data
+#    Compose prefixes the volume name with the project name (the directory),
+#    so on a fresh checkout the volume is e.g. `lockpad_storage`.
+#    Backup:  docker run --rm -v lockpad_storage:/data:ro -v $PWD:/out busybox tar czf /out/lockpad-storage-$(date +%F).tgz /data
 
 services:
-  notepad:
-    container_name: notepad
+  lockpad:
+    container_name: lockpad
     build:
       context: .
       dockerfile: Dockerfile
-    image: notepad-secure:latest
+    image: lockpad:latest
     restart: unless-stopped
 
     environment:
