@@ -30,7 +30,16 @@ export class NotesController {
             return;
         }
 
-        Database.save(req.authKey!, req.body);
+        try {
+            Database.save(req.authKey!, req.body);
+        } catch (err: any) {
+            if (err && err.message === 'content exceeds maxBlobBytes') {
+                res.status(413).json({ error: 'payload too large' });
+                return;
+            }
+            throw err;
+        }
+
         res.status(204).end();
     }
 
