@@ -2,6 +2,26 @@
 
 All security-relevant changes vs. upstream Athlon1600/notepad.
 
+## [1.2.0] — configurable host binding
+
+### Added
+
+- `LOCKPAD_BIND` env var (default `127.0.0.1`) controls the host address
+  Docker maps the published port to. Set `LOCKPAD_BIND=0.0.0.0` to expose
+  Lockpad on the LAN, or a specific NIC IP to bind to one interface only.
+  Backwards-compatible: deployments without the variable keep the safe
+  loopback-only default exactly as before.
+
+### Notes
+
+- LAN-exposed deployments still need a reverse proxy (Caddy/Traefik/nginx)
+  for TLS and any meaningful access policy. Lockpad performs no
+  network-layer authentication — the passphrase encrypts note content
+  client-side, but anyone reaching the service can hit the API.
+- `docker-compose.override.yml` is now explicitly gitignored. It was
+  always meant for per-host port choices that shouldn't ship with the
+  project; the gitignore makes that contract explicit.
+
 ## [1.1.1] — CI housekeeping
 
 No runtime or image-behaviour change. The 1.1.1 image is byte-for-byte

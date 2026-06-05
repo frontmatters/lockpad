@@ -47,14 +47,19 @@ docker compose up -d
 open http://127.0.0.1:3000/    # or your DOMAIN behind Caddy
 ```
 
-The container listens on `127.0.0.1:3000` only. For public access put
-[Caddy](./etc/Caddyfile) (or Traefik / nginx) in front to terminate TLS.
+By default the container binds to `127.0.0.1:3000` only (localhost). Set
+`LOCKPAD_BIND=0.0.0.0` in `.env` to expose it on your LAN (HTTP, no TLS).
+For anything more than that — public access, real users, multiple devices —
+put [Caddy](./etc/Caddyfile) (or Traefik / nginx) in front to terminate TLS.
+Lockpad performs no network-layer authentication, so reachability =
+service-level access.
 
 ## Configuration
 
 | Var | Required | Purpose |
 |---|---|---|
 | `SERVER_SECRET` | **yes** | 32+ char random string. HMAC key for the on-disk filename of every note. Treat as a per-instance fingerprint; never rotate without invalidating all data. |
+| `LOCKPAD_BIND` | no | Host address Docker maps the port to. `127.0.0.1` (default, safest — localhost only), `0.0.0.0` (all interfaces — LAN access, HTTP only), or a specific NIC IP. |
 | `DOMAIN` | no | Domain name Caddy serves on. Defaults to `lockpad.local`. Use a public domain for auto-TLS, or `localhost`/`:80` for plain HTTP behind another proxy. |
 | `PORT` | no | Backend listen port inside the container. Defaults to `3000`. |
 | `STORAGE_DIR` | no | Where the named volume mounts. Defaults to `/data/storage`. |
