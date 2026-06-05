@@ -49,7 +49,9 @@ services:
       - storage:/data/storage
 
     ports:
-      - "127.0.0.1:3000:3000"
+      # Bind via LOCKPAD_BIND env (see .env.example). Default 127.0.0.1 = localhost only.
+      # For LAN access: LOCKPAD_BIND=0.0.0.0 (HTTP, no TLS — use Caddy for production).
+      - "${LOCKPAD_BIND:-127.0.0.1}:3000:3000"
 
     # Hardening — every line below counter a specific audit Docker finding.
     read_only: true

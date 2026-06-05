@@ -16,6 +16,10 @@ dist
 backend/storage
 backend/public/backups
 
+# Local-only compose overrides (host port, dev mounts, etc.) — never commit
+docker-compose.override.yml
+docker-compose.override.yaml
+
 # Logs / coverage
 *.log
 npm-debug.log*
