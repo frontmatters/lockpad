@@ -2,6 +2,21 @@
 
 All security-relevant changes vs. upstream Athlon1600/notepad.
 
+## [1.1.1] — CI housekeeping
+
+No runtime or image-behaviour change. The 1.1.1 image is byte-for-byte
+equivalent in functionality to 1.1.0; only the build pipeline upstream
+tooling moved.
+
+### CI
+- Bumped GitHub Actions to Node 24-compatible majors ahead of the
+  2026-09-16 Node 20 removal: `checkout@v4 → v6`,
+  `setup-qemu-action@v3 → v4`, `setup-buildx-action@v3 → v4`,
+  `login-action@v3 → v4`, `build-push-action@v5 → v7`,
+  `action-gh-release@v2 → v3`. `cosign-installer@v3` left as-is
+  (already Node 24-ready). Floating major tags retained to match
+  the repo's existing pinning style.
+
 ## [1.1.0] — tunable blob size
 
 Backwards-compatible: deployments without the new env var keep the
