@@ -1,0 +1,3 @@
+# git-email-guard: allowed author emails for this repo.
+# One email per line. Lines starting with # are ignored.
+hello@frontmatters.dev
