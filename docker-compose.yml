@@ -44,6 +44,10 @@ services:
       # "65536", or "DEFAULT") tunes this instance without changing the
       # image-level default. See README Configuration table.
       MAX_BLOB_SIZE: ${MAX_BLOB_SIZE:-}
+      # Drop HTTPS-only response headers (CSP upgrade-insecure-requests + HSTS).
+      # Required when LOCKPAD_BIND exposes plain HTTP without a TLS proxy in
+      # front. Defaults to false. See README Configuration table.
+      LOCKPAD_PLAIN_HTTP: ${LOCKPAD_PLAIN_HTTP:-false}
 
     volumes:
       - storage:/data/storage
