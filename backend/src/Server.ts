@@ -1,12 +1,15 @@
 import {Application, NextFunction, Request, Response, Router} from "express";
 import path from "path";
 import helmet from "helmet";
+import { Config } from "./config";
 
 const express = require('express');
 
-// Body size: 40000 plaintext chars * worst-case ratio for AES-GCM + base64
-// envelope JSON ≈ 56 KiB. 64 KiB gives breathing room without inviting abuse.
-const BODY_LIMIT = "64kb";
+// Body size budget — sourced from Config so the Express body parser and
+// Database.save defense-in-depth check share one source of truth. Default
+// (64 KiB) ≈ 40000 plaintext chars * worst-case AES-GCM + base64 ratio ≈
+// 56 KiB, with breathing room without inviting abuse. Override per-instance
+// via MAX_BLOB_SIZE env var (accepts units; see config.ts/parseBlobSize).
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -88,7 +91,7 @@ export class Server {
         // (server is opaque to envelope shape).
         this.app.use(express.text({
             type: '*/*',
-            limit: BODY_LIMIT
+            limit: Config.maxBlobBytes
         }));
     }
 

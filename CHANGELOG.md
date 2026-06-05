@@ -2,6 +2,32 @@
 
 All security-relevant changes vs. upstream Athlon1600/notepad.
 
+## [1.1.0] — tunable blob size
+
+Backwards-compatible: deployments without the new env var keep the
+existing 64 KiB ceiling exactly as before.
+
+### Added
+- `MAX_BLOB_SIZE` env var (optional). Accepts human units (`1mb`,
+  `750kb`, `64kib`), raw bytes (`65536`), or the sentinel `DEFAULT`
+  (also matches empty / unset). Single source of truth for both the
+  Express body-parser limit and the `Database.save` defense-in-depth
+  check, so the two layers cannot drift.
+- Startup memory-headroom check: on boot, the backend reads the
+  container's cgroup memory limit and warns loudly if the configured
+  `MAX_BLOB_SIZE` is large enough to risk OOM under concurrent writes.
+  Replaces the need to manually pre-tune `mem_limit` ahead of time.
+
+### Changed
+- `Server.ts` no longer hardcodes `BODY_LIMIT = "64kb"`; it sources the
+  byte count from `Config.maxBlobBytes`.
+
+### Notes for existing self-hosters
+- Default behaviour is unchanged. To start using `MAX_BLOB_SIZE`, add
+  `MAX_BLOB_SIZE: ${MAX_BLOB_SIZE:-}` to the `environment:` section of
+  your `docker-compose.yml` (already present in the repo's compose file
+  for fresh installs), then set the value in `.env`.
+
 ## [1.0.1] — multi-arch + CI release pipeline
 
 First release built by the GitHub Actions release workflow. The v1.0.0

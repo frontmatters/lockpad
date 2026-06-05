@@ -58,6 +58,7 @@ The container listens on `127.0.0.1:3000` only. For public access put
 | `DOMAIN` | no | Domain name Caddy serves on. Defaults to `lockpad.local`. Use a public domain for auto-TLS, or `localhost`/`:80` for plain HTTP behind another proxy. |
 | `PORT` | no | Backend listen port inside the container. Defaults to `3000`. |
 | `STORAGE_DIR` | no | Where the named volume mounts. Defaults to `/data/storage`. |
+| `MAX_BLOB_SIZE` | no | Max size of an encrypted-note blob. Accepts human units (`1mb`, `750kb`, `64kib`), raw bytes (`65536`), or the sentinel `DEFAULT`. Empty/unset = default. Defaults to 64 KiB ≈ 40 000 plaintext chars. Same value backs both the Express body parser and the write-time defense-in-depth check; the app warns at startup if the chosen value outgrows the container's `mem_limit`, so you do not need to pre-tune memory by hand. |
 
 ## Verification
 

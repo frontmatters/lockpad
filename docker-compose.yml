@@ -38,6 +38,12 @@ services:
       # its own — but compose's message is more actionable).
       SERVER_SECRET: ${SERVER_SECRET:?SERVER_SECRET must be set — see .env.example}
       STORAGE_DIR: /data/storage
+      # Pass-through with empty fallback: when MAX_BLOB_SIZE is unset, the
+      # container env var is empty and config.ts falls back to its 64 KiB
+      # default. Setting MAX_BLOB_SIZE in .env (accepts "1mb", "750kb",
+      # "65536", or "DEFAULT") tunes this instance without changing the
+      # image-level default. See README Configuration table.
+      MAX_BLOB_SIZE: ${MAX_BLOB_SIZE:-}
 
     volumes:
       - storage:/data/storage
