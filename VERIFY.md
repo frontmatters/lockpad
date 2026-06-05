@@ -64,8 +64,9 @@ release but should be tracked.
 docker compose build
 ```
 
-Expect: three stages succeed, final image ~150-250 MB (alpine + node runtime
-+ production deps + bundle).
+Expect: three stages succeed, final image ~220-300 MB (Debian-slim + node
+runtime + production deps + bundle). Larger than the historical Alpine-based
+image; the swap was made for reliable QEMU-emulated arm64 builds in CI.
 
 ## 7. Image CVE scan
 
@@ -79,20 +80,18 @@ trivy image lockpad:latest --severity HIGH,CRITICAL
 docker scout cves lockpad:latest --only-severity high,critical
 ```
 
-Expect: no HIGH/CRITICAL CVEs in app dependencies. Alpine base may have
-unpatched-yet CVEs in low/medium severity, which is normal — rebuild when
-fixed upstream.
+Expect: no HIGH/CRITICAL CVEs in app dependencies. The Debian-slim base may
+carry unpatched-yet CVEs in low/medium severity, which is normal — rebuild
+when fixed upstream.
 
 ## 8. Pin base images to @sha256 (release time)
 
 ```bash
-docker buildx imagetools inspect node:20.18.0-alpine3.20 --format '{{json .}}' | jq -r .manifest.digest
-docker buildx imagetools inspect node:20.18.0-bullseye-slim --format '{{json .}}' | jq -r .manifest.digest
+docker buildx imagetools inspect node:22-bookworm-slim --format '{{json .}}' | jq -r .manifest.digest
 ```
 
-Replace the two `FROM node:20.18.0-...` lines in `Dockerfile` with
-`FROM node:20.18.0-alpine3.20@sha256:<digest>` to lock the build to an
-immutable image.
+Replace the three `FROM node:22-bookworm-slim@sha256:...` lines in
+`Dockerfile` with the new digest to lock the build to an immutable image.
 
 ## 9. SERVER_SECRET set
 

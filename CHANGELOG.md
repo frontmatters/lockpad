@@ -22,6 +22,15 @@ existing 64 KiB ceiling exactly as before.
 - `Server.ts` no longer hardcodes `BODY_LIMIT = "64kb"`; it sources the
   byte count from `Config.maxBlobBytes`.
 
+### Build
+- Base image swapped from `node:20-alpine3.22` to `node:22-bookworm-slim`.
+  QEMU-emulated arm64 builds of the Alpine variant SIGILL'd inside
+  `npm ci` (V8 pointer-tagging on emulated arm64 + musl), aborting
+  multi-arch CI releases. Debian-slim + Node 22 sidesteps that. Image
+  grows from ~140 MB to ~280 MB — acceptable cost for reliable publishing.
+- Image digest is re-pinned; security-conscious operators verifying with
+  `cosign verify` or pinning consumers by digest should refresh.
+
 ### Notes for existing self-hosters
 - Default behaviour is unchanged. To start using `MAX_BLOB_SIZE`, add
   `MAX_BLOB_SIZE: ${MAX_BLOB_SIZE:-}` to the `environment:` section of
