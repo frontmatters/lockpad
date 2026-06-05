@@ -12,6 +12,13 @@ const express = require('express');
 // via MAX_BLOB_SIZE env var (accepts units; see config.ts/parseBlobSize).
 
 const isProd = process.env.NODE_ENV === 'production';
+// Plain-HTTP mode for LAN deploys without a reverse proxy: drops
+// `upgrade-insecure-requests` from the CSP and disables HSTS. Lets clients
+// load assets over HTTP without the browser auto-upgrading them to HTTPS
+// (which would 404 since no TLS server is in front). Other isProd-gated
+// behaviour (error message hiding etc.) stays enabled.
+const plainHttp = process.env.LOCKPAD_PLAIN_HTTP === 'true';
+const enableHttpsHeaders = isProd && !plainHttp;
 
 export class Server {
 
@@ -64,12 +71,12 @@ export class Server {
                     objectSrc: ["'none'"],
                     baseUri: ["'self'"],
                     frameAncestors: ["'none'"],
-                    upgradeInsecureRequests: isProd ? [] : null,
+                    upgradeInsecureRequests: enableHttpsHeaders ? [] : null,
                 },
             },
             crossOriginEmbedderPolicy: false,
             referrerPolicy: { policy: 'no-referrer' },
-            hsts: isProd ? { maxAge: 31536000, includeSubDomains: true, preload: false } : false,
+            hsts: enableHttpsHeaders ? { maxAge: 31536000, includeSubDomains: true, preload: false } : false,
         }));
 
         // Explicitly deny /backups/* — upstream shipped a cron that dumped

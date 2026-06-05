@@ -47,10 +47,21 @@ docker compose up -d
 open http://127.0.0.1:3000/    # or your DOMAIN behind Caddy
 ```
 
-By default the container binds to `127.0.0.1:3000` only (localhost). Set
-`LOCKPAD_BIND=0.0.0.0` in `.env` to expose it on your LAN (HTTP, no TLS).
-For anything more than that — public access, real users, multiple devices —
-put [Caddy](./etc/Caddyfile) (or Traefik / nginx) in front to terminate TLS.
+By default the container binds to `127.0.0.1:3000` only (localhost). To
+expose it on your LAN over plain HTTP, set both:
+
+```
+LOCKPAD_BIND=0.0.0.0
+LOCKPAD_PLAIN_HTTP=true
+```
+
+The second flag drops `upgrade-insecure-requests` from the CSP — without
+it, browsers auto-upgrade asset requests to HTTPS, hit no TLS server, and
+the UI fails to load (favicon + bundle blocked).
+
+For anything beyond your own LAN — public access, real users, multiple
+devices — put [Caddy](./etc/Caddyfile) (or Traefik / nginx) in front to
+terminate TLS and keep `LOCKPAD_BIND=127.0.0.1` + `LOCKPAD_PLAIN_HTTP=false`.
 Lockpad performs no network-layer authentication, so reachability =
 service-level access.
 
@@ -60,6 +71,7 @@ service-level access.
 |---|---|---|
 | `SERVER_SECRET` | **yes** | 32+ char random string. HMAC key for the on-disk filename of every note. Treat as a per-instance fingerprint; never rotate without invalidating all data. |
 | `LOCKPAD_BIND` | no | Host address Docker maps the port to. `127.0.0.1` (default, safest — localhost only), `0.0.0.0` (all interfaces — LAN access, HTTP only), or a specific NIC IP. |
+| `LOCKPAD_PLAIN_HTTP` | no | `true` drops the `upgrade-insecure-requests` CSP directive + HSTS so the UI loads over plain HTTP (LAN deploys without reverse proxy). Defaults to `false` — required `false` when serving via Caddy/Traefik/nginx. |
 | `DOMAIN` | no | Domain name Caddy serves on. Defaults to `lockpad.local`. Use a public domain for auto-TLS, or `localhost`/`:80` for plain HTTP behind another proxy. |
 | `PORT` | no | Backend listen port inside the container. Defaults to `3000`. |
 | `STORAGE_DIR` | no | Where the named volume mounts. Defaults to `/data/storage`. |

@@ -2,6 +2,29 @@
 
 All security-relevant changes vs. upstream Athlon1600/notepad.
 
+## [1.3.0] — plain-HTTP mode for LAN deploys
+
+### Added
+
+- `LOCKPAD_PLAIN_HTTP` env var. When set to `true`, the server emits its
+  CSP **without** the `upgrade-insecure-requests` directive and disables
+  HSTS. This is required for `LOCKPAD_BIND=0.0.0.0` (or any LAN-exposure)
+  deploys that do **not** have a TLS-terminating reverse proxy in front.
+  Without it, browsers auto-upgrade asset requests to HTTPS, fail to reach
+  any TLS server, and the UI does not load (favicon + bundle blocked,
+  surface symptoms include "CORS error" and "certificate error").
+  Defaults to `false` — the safe choice for production behind a proxy.
+
+### Behavioural notes
+
+- Other `isProd`-gated behaviour (error message hiding in 5xx responses,
+  etc.) remains tied to `NODE_ENV=production` and is unchanged. The new
+  flag scopes narrowly to the HTTPS-only response headers.
+- `LOCKPAD_PLAIN_HTTP=true` paired with a reverse proxy is a misconfig —
+  the proxy already terminates TLS and `upgrade-insecure-requests` is
+  helpful in that setup. Set this flag only when you genuinely intend to
+  serve over plain HTTP.
+
 ## [1.2.0] — configurable host binding
 
 ### Added
