@@ -150,7 +150,7 @@ External:
 
 ```bash
 git tag -s v0.2.0 -m "0.2.0 — security-hardened fork (see CHANGELOG.md)"
-git push gitea v0.2.0
+git push origin v0.2.0
 ```
 
 Optional: also push to GitHub mirror once that remote is added.
@@ -159,10 +159,10 @@ Optional: also push to GitHub mirror once that remote is added.
 
 ```bash
 # Cosign keyless signing via Sigstore (uses your GitHub/Google identity)
-cosign sign --yes ghcr.io/cartmedia/lockpad:0.2.0
+cosign sign --yes ghcr.io/frontmatters/lockpad:0.2.0
 
 # Verify
-cosign verify ghcr.io/cartmedia/lockpad:0.2.0 \
+cosign verify ghcr.io/frontmatters/lockpad:0.2.0 \
   --certificate-identity-regexp '.*' \
   --certificate-oidc-issuer-regexp '.*'
 ```

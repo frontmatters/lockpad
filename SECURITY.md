@@ -132,7 +132,7 @@ file mode = 0o600 (only the container user can read)
 
 ## Reporting vulnerabilities
 
-Please open an issue on the Gitea repository or email the maintainer
+Please open an issue on this repository or email the maintainer
 (`hello@frontmatters.dev`) with the `[lockpad security]` prefix.
 
 For embargo-required findings, do **not** open a public issue. Email with
